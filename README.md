@@ -2,9 +2,11 @@
 
 This demo will explore how to use Karpenter to scale node groups using different metrics.
 
+The set of directions listed in this README contain the setup common amongst all demos.
 ## Setup
 
 ### Environment
+Set up environment variables for all demos.
 
 ```bash
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -28,6 +30,7 @@ eksctl create cluster \
 ```
 
 ### Karpenter Controller
+Karpenter has a dependency on cert-manager and prometheus. Install these with settings specific to Karpenter and apply our manifest to the cluster.
 
 ```bash
 helm repo add jetstack https://charts.jetstack.io
@@ -61,6 +64,7 @@ kubectl apply -f https://raw.githubusercontent.com/awslabs/karpenter/v0.1.1/rele
 ```
 
 ### AWS Credentials
+This is the identity of the Karpenter controller. Karpenter needs these permissions in order for it to control the autoscaling mechanisms present in all the following demos.
 
 ```bash
 aws iam create-policy --policy-name Karpenter --policy-document "$(cat <<-EOM
@@ -99,6 +103,7 @@ aws iam create-policy --policy-name Karpenter --policy-document "$(cat <<-EOM
 EOM
 )"
 ```
+This wires up permissions using IRSA by adding a secret with permissions to AWS resources into the default service account.
 
 ```bash
 eksctl utils associate-iam-oidc-provider --region=${REGION} --cluster=${CLUSTER_NAME} --approve
@@ -109,11 +114,14 @@ eksctl create iamserviceaccount --cluster ${CLUSTER_NAME} \
 --override-existing-serviceaccounts \
 --approve
 
+# Due to a weird side effect of IRSA, we need to restart the Karpenter pod so that the newly created serviceaccount's secret is wired up.
 kubectl delete pods -n karpenter -l control-plane=karpenter
 kubectl get pods -n karpenter
 ```
 
 ## Demos
+Continue to any demo below. 
+Make sure you keep the environment variables defined above in the same terminal for the following demos.
 
 * [Queue Length](./queue-length/)
 * [Reserved Capacity](./reserved-capacity)
